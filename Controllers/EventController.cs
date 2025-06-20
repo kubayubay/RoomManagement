@@ -36,9 +36,20 @@ public class EventController : ControllerBase
 
     [HttpGet("Events")]
     public IActionResult GetEvents(DateOnly start, DateOnly end)
-    {
-        // TODO: Get all events within a date range inclusive
-        return Ok();
+    {  
+        try
+        {
+            var calendarEvents = _context.Database.SqlQuery<Event>(@$"
+                SELECT * FROM Events
+                WHERE StartAt >= {start}
+                AND EndAt <= CONCAT({end}, ' 23:59')
+            ");
+            return Ok(calendarEvents);
+        }
+        catch (Exception)
+        {
+            return NotFound($"Could not find events.");
+        }
     }
 
     [HttpPost]
@@ -56,9 +67,19 @@ public class EventController : ControllerBase
     }
 
     [HttpDelete]
-    public IActionResult DeleteEvent()
+    public IActionResult DeleteEvent(int id)
     {
-        // TODO: Delete an event
-        return Ok();
+       try
+        {
+            var calendarEvent = _context.Database.SqlQuery<Event>(@$"
+                DELETE FROM Events
+                WHERE Id = {id}
+            ").Single();
+            return Ok(calendarEvent);
+        }
+        catch (Exception)
+        {
+            return NotFound($"Could not find event #{id}.");
+        }
     }
 }

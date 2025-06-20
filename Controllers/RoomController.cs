@@ -58,9 +58,19 @@ public class RoomController : ControllerBase
     }
 
     [HttpDelete]
-    public IActionResult DeleteRoom()
+    public IActionResult DeleteRoom(int id)
     {
-        // TODO: Delete a room
-        return Ok();
+       try
+        {
+            var room = _context.Database.SqlQuery<Room>(@$"
+                DELETE FROM Events
+                WHERE Id = {id}
+            ").Single();
+            return Ok(room);
+        }
+        catch (Exception)
+        {
+            return NotFound($"Could not find event #{id}.");
+        }
     }
 }
