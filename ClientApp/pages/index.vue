@@ -9,6 +9,16 @@
         </div>
         <DayPilotMonth :config="config" ref="monthRef" />
     </div>
+    <div v-if="events != undefined">
+        <div v-for="event in events">
+            {{ event.name }}
+        </div>
+    </div>
+    <div v-if="rooms != undefined">
+        <div v-for="room in rooms">
+            {{ room.name }}
+        </div>
+    </div>
 </template>
 
 <script setup>
@@ -68,6 +78,34 @@ const loadEvents = () => {
     config.value.events = events
 }
 
+const events = ref()
+const loadEvents2 = () => {
+    $fetch(`/api/v1/Event/Events?start=2025-06-19&end=2025-06-21`, {
+        server: false,
+        onResponse({ response }) {
+            if (!response.ok) {
+                alert(response._data)
+            } else {
+                events.value = response._data
+            }
+        }
+    })
+}
+
+const rooms = ref()
+const loadRooms2 = () => {
+    $fetch(`/api/v1/Room/Rooms`, {
+        server: false,
+        onResponse({ response }) {
+            if (!response.ok) {
+                alert(response._data)
+            } else {
+                rooms.value = response._data
+            }
+        }
+    })
+}
+
 const onClickPreviousMonth = () => {
     currentDate.value.setMonth(currentDate.value.getMonth() - 1)
     config.value.startDate = `${currentDate.value.getFullYear()}-${String(currentDate.value.getMonth() + 1).padStart(2, '0')}-${String(currentDate.value.getDate()).padStart(2, '0')}`
@@ -80,5 +118,7 @@ const onClickNextMonth = () => {
 
 onMounted(() => {
     loadEvents()
+    loadEvents2()
+    loadRooms2()
 })
 </script>
