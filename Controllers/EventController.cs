@@ -1,8 +1,19 @@
 using RoomManagement.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Riok.Mapperly.Abstractions;
 
 namespace RoomManagement.Controllers;
+
+
+[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.None)]
+public partial class EventMapper
+{
+    [MapperIgnoreTarget(nameof(Event.Id))]
+    [MapperIgnoreTarget(nameof(Event.CreatedBy))]
+    [MapperIgnoreTarget(nameof(Event.CreatedAt))]
+    public partial void EventToEvent(Event oldEvent, Event newEvent);
+}
 
 [ApiController]
 [Route("/api/v1/[controller]")]
@@ -10,6 +21,7 @@ public class EventController : ControllerBase
 {
     private readonly ILogger<EventController> _logger;
     private readonly RoomManagementContext _context;
+    private readonly EventMapper _mapper = new();
 
     public EventController(ILogger<EventController> logger, RoomManagementContext context)
     {
@@ -53,17 +65,90 @@ public class EventController : ControllerBase
     }
 
     [HttpPost]
-    public IActionResult NewEvent()
+    public IActionResult NewEvent(Event userEvent)
     {
-        // TODO: Create a new event
-        return Ok();
+        var room = _context.Rooms.Single(r => r.Id == userEvent.RoomId);
+
+        var events = _context.Events.Where(e => e.RoomId == userEvent.RoomId && (
+            userEvent.StartAt < e.EndAt && userEvent.EndAt > e.StartAt
+        ));
+
+        if (events != null && events.Count() > 0)
+        {
+            return BadRequest("This event overlaps with another event.");
+        }
+        else if (userEvent.Attendees > room.Capacity)
+        {
+            return BadRequest($"Room #{room.Id} does not have enough capacity for {userEvent.Attendees} attendees.");
+        }
+        else if (userEvent.Attendees < 0)
+        {
+            return BadRequest("Attendees entered is less than 0.");
+        }
+        else if (userEvent.ChairsNeeded != null && userEvent.ChairsNeeded < 0)
+        {
+            return BadRequest("Chairs entered is less than 0.");
+        }
+        else if (userEvent.TablesNeeded != null && userEvent.TablesNeeded < 0)
+        {
+            return BadRequest("Tables entered is less than 0.");
+        }
+
+        if (userEvent.Attendees <= room.Capacity)
+            {
+                userEvent.Id = 0;
+                userEvent.UpdatedBy = null;
+                userEvent.UpdatedAt = null;
+                userEvent.CreatedBy = 5;
+                userEvent.CreatedAt = DateTime.Now;
+
+                _context.Add(userEvent);
+                _context.SaveChangesAsync();
+
+                return Ok(userEvent);
+            }
+            else
+            {
+                return BadRequest($"{room.Id} does not have enough capacity for {userEvent.Attendees} attendees.");
+            }
     }
 
     [HttpPut]
-    public IActionResult UpdateEvent()
+    public IActionResult UpdateEvent(Event userEvent)
     {
-        // TODO: Update an existing event
-        return Ok();
+        var room = _context.Rooms.Single(r => r.Id == userEvent.RoomId);
+
+        var events = _context.Events.Where(e => e.RoomId == userEvent.RoomId && (
+            userEvent.StartAt < e.EndAt && userEvent.EndAt > e.StartAt
+        ) && e.Id != userEvent.Id);
+
+        if (events != null && events.Count() > 0)
+        {
+            return BadRequest("This event overlaps with another event.");
+        }
+        else if (userEvent.Attendees > room.Capacity)
+        {
+            return BadRequest($"Room #{room.Id} does not have enough capacity for {userEvent.Attendees} attendees.");
+        }
+        else if (userEvent.Attendees < 0)
+        {
+            return BadRequest("Attendees entered is less than 0.");
+        }
+        else if (userEvent.ChairsNeeded != null && userEvent.ChairsNeeded < 0)
+        {
+            return BadRequest("Chairs entered is less than 0.");
+        }
+        else if (userEvent.TablesNeeded != null && userEvent.TablesNeeded < 0)
+        {
+            return BadRequest("Tables entered is less than 0.");
+        }
+
+        var oldEvent = _context.Events.Single(e => e.Id == userEvent.Id);
+        _mapper.EventToEvent(userEvent, oldEvent);
+        oldEvent.UpdatedAt = DateTime.Now;
+        oldEvent.UpdatedBy = 5;
+        _context.SaveChanges();
+        return Ok(oldEvent);
     }
 
     [HttpDelete]
