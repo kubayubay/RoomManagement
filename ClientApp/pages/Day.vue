@@ -13,6 +13,7 @@
 <script setup lang="ts">
 import { DayPilot, DayPilotCalendar } from '@daypilot/daypilot-lite-vue'
 import { ref, onMounted } from 'vue'
+const route = useRoute()
 
 const config = ref({
     viewType: 'Resources',
@@ -64,39 +65,35 @@ const config = ref({
 const calendarRef = ref(null)
 
 const loadEvents = () => {
-    const events = [
-        {
-            id: 1,
-            start: DayPilot.Date.today().addHours(12),
-            end: DayPilot.Date.today().addHours(14),
-            text: 'Event 1',
-            resource: 'GA'
-        },
-        {
-            id: 2,
-            start: DayPilot.Date.today().addHours(9),
-            end: DayPilot.Date.today().addHours(10),
-            text: 'Event 2',
-            resource: 'R1'
+    let events = []
+    let date = route.query.date
+    config.value.startDate = new Date(date)
+    $fetch(`/api/v1/Event/Events?start=${date}&end=${date}`, {
+        server: false,
+        onResponse({ response }) {
+            for (let event of response._data) {
+                let eventStart = new Date(event.startAt)
+                let eventEnd = new Date(event.endAt)
+                events.push({
+                    id: event.id,
+                    start: eventStart.setHours(eventStart.getHours() - 7),
+                    end: eventEnd.setHours(eventEnd.getHours() - 7),
+                    text: event.name,
+                    resource: event.roomId
+                })
+            }
+            config.value.events = events
         }
-    ]
-
-    config.value.events = events
+    })
 }
 
 const loadResources = () => {
-    const resources = [
-        { name: 'Resource 1', id: 'R1' },
-        { name: 'Resource 2', id: 'R2' },
-        { name: 'Resource 3', id: 'R3' },
-        { name: 'Resource 4', id: 'R4' },
-        { name: 'Resource 5', id: 'R5' },
-        { name: 'Resource 6', id: 'R6' },
-        { name: 'Resource 7', id: 'R7' },
-        { name: 'Resource 8', id: 'R8' }
-    ]
-
-    config.value.columns = resources
+    $fetch('/api/v1/Room/Rooms', {
+        server: false,
+        onResponse({ response }) {
+            config.value.columns = response._data
+        }
+    })
 }
 
 const onClickCalendar = () => navigateTo('/')

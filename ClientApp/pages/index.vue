@@ -7,6 +7,9 @@
             <Button icon="ooui:arrow-previous-ltr" label="Previous Month" @click="onClickPreviousMonth" />
             <Button icon="ooui:arrow-previous-rtl" label="Next Month" @click="onClickNextMonth" />
         </div>
+        <div class="text-center text-xl font-bold mb-4">
+            {{ months[currentDate.getMonth()] }} {{ currentDate.getFullYear() }}
+        </div>
         <DayPilotMonth :config="config" ref="monthRef" />
     </div>
     <div v-if="events != undefined">
@@ -26,10 +29,25 @@ import { DayPilot, DayPilotMonth } from '@daypilot/daypilot-lite-vue'
 import { ref, onMounted } from 'vue'
 
 const currentDate = ref(new Date())
+const months = [
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
+]
 
 const config = ref({
     locale: 'en-us',
     timeRangeSelectedHandling: 'Enabled',
+    cellHeight: 150,
     startDate: `${currentDate.value.getFullYear()}-${String(currentDate.value.getMonth() + 1).padStart(2, '0')}-${String(currentDate.value.getDate()).padStart(2, '0')}`,
     onTimeRangeSelected: async (args) => {
         const calendar = args.control
@@ -66,59 +84,50 @@ const config = ref({
 const monthRef = ref(null)
 
 const loadEvents = () => {
-    const events = [
-        {
-            id: 1,
-            start: DayPilot.Date.today(),
-            end: DayPilot.Date.today().addDays(1),
-            text: 'Event 1'
-        }
-    ]
+    let events = []
+    let startDate = new Date(currentDate.value)
+    startDate.setDate(1)
+    startDate.setMonth(startDate.getMonth() - 1)
+    let endDate = new Date(currentDate.value)
+    endDate.setDate(15)
+    endDate.setMonth(endDate.getMonth() + 1)
 
-    config.value.events = events
+    $fetch(`/api/v1/Event/Events?start=${startDate.toLocaleDateString()}&end=${endDate.toLocaleDateString()}`, {
+        server: false,
+        onResponse({ response }) {
+            for (let event of response._data) {
+                let eventStart = new Date(event.startAt)
+                let eventEnd = new Date(event.endAt)
+                events.push({
+                    id: event.id,
+                    start: eventStart.setHours(eventStart.getHours() - 7),
+                    end: eventEnd.setHours(eventEnd.getHours() - 7),
+                    text: event.name,
+                    resource: event.roomId
+                })
+            }
+            config.value.events = events
+        }
+    })
 }
 
 const events = ref()
-const loadEvents2 = () => {
-    $fetch(`/api/v1/Event/Events?start=2025-06-19&end=2025-06-21`, {
-        server: false,
-        onResponse({ response }) {
-            if (!response.ok) {
-                alert(response._data)
-            } else {
-                events.value = response._data
-            }
-        }
-    })
-}
-
-const rooms = ref()
-const loadRooms2 = () => {
-    $fetch(`/api/v1/Room/Rooms`, {
-        server: false,
-        onResponse({ response }) {
-            if (!response.ok) {
-                alert(response._data)
-            } else {
-                rooms.value = response._data
-            }
-        }
-    })
-}
 
 const onClickPreviousMonth = () => {
     currentDate.value.setMonth(currentDate.value.getMonth() - 1)
+    currentDate.value = new Date(currentDate.value)
     config.value.startDate = `${currentDate.value.getFullYear()}-${String(currentDate.value.getMonth() + 1).padStart(2, '0')}-${String(currentDate.value.getDate()).padStart(2, '0')}`
+    loadEvents()
 }
 
 const onClickNextMonth = () => {
     currentDate.value.setMonth(currentDate.value.getMonth() + 1)
+    currentDate.value = new Date(currentDate.value)
     config.value.startDate = `${currentDate.value.getFullYear()}-${String(currentDate.value.getMonth() + 1).padStart(2, '0')}-${String(currentDate.value.getDate()).padStart(2, '0')}`
+    loadEvents()
 }
 
 onMounted(() => {
     loadEvents()
-    loadEvents2()
-    loadRooms2()
 })
 </script>

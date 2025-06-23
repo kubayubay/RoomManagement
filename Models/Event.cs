@@ -22,6 +22,6 @@ public class Event
     public DateTime? UpdatedAt { get; set; }
     public string? Comments { get; set; } = "";
     public string? Options { get; set; } = "";
-    public int ChairsNeeded { get; set; }
-    public int TablesNeeded { get; set; }
+    public int? ChairsNeeded { get; set; }
+    public int? TablesNeeded { get; set; }
 }
