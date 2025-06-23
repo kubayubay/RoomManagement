@@ -63,7 +63,7 @@ public class RoomController : ControllerBase
        try
         {
             var room = _context.Database.SqlQuery<Room>(@$"
-                DELETE FROM Events
+                DELETE FROM Rooms
                 WHERE Id = {id}
             ").Single();
             return Ok(room);
