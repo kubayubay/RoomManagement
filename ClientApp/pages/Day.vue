@@ -7,6 +7,7 @@
             <Button label="Calendar" icon="ic:outline-calendar-month" @click="onClickCalendar" />
         </div>
         <DayPilotCalendar :config="config" ref="calendarRef" />
+        <EventForm ref="eventFormRef" :eventInfo="event" v-if="isEventFormShown" @update="loadEvents" />
     </div>
 </template>
 
@@ -14,6 +15,17 @@
 import { DayPilot, DayPilotCalendar } from '@daypilot/daypilot-lite-vue'
 import { ref, onMounted } from 'vue'
 const route = useRoute()
+const event = ref()
+const isEventFormShown = ref(false)
+const eventFormRef = ref()
+
+const scroll = () => {
+    isEventFormShown.value = true
+    setTimeout(() => {
+        console.log(eventFormRef.value)
+        eventFormRef.value.$el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 200)
+}
 
 const config = ref({
     viewType: 'Resources',
@@ -63,6 +75,19 @@ const config = ref({
     contextMenu: new DayPilot.Menu({
         items: [
             {
+                text: 'Edit', onClick: (args) => {
+                    let id = args.source.id()
+                    $fetch(`/api/v1/Event?id=${id}`, {
+                        server: false,
+                        onResponse({ response }) {
+                            event.value = response._data
+                            isEventFormShown.value = true
+                            scroll()
+                        }
+                    })
+                }
+            },
+            {
                 text: 'Delete', onClick: (args) => {
                     const dp = args.source.calendar
                     dp.events.remove(args.source)
@@ -89,6 +114,7 @@ const calendarRef = ref(null)
 const loadEvents = () => {
     let events = []
     let date = route.query.date
+    isEventFormShown.value = false
     config.value.startDate = new Date(date)
     $fetch(`/api/v1/Event/Events?start=${date}&end=${date}`, {
         server: false,

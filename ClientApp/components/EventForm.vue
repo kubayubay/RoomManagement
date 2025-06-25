@@ -75,7 +75,12 @@
                 />
             </div>
 
-            <Button label="New Event" />
+            <template v-if="props.eventInfo != undefined">
+                <Button label="Update Event" />
+            </template>
+            <template v-else>
+                <Button label="New Event" />
+            </template>
         </FormKit>
     </div>
 </template>
@@ -116,18 +121,36 @@ onMounted(() => {
 })
 
 const onSubmit = () => {
-    $fetch('/api/v1/Event', {
-        server: false,
-        method: 'POST',
-        body: event.value,
-        onResponse({ response }) {
-            if (!response.ok) {
-                alert(response._data)
-            } else {
-                emit('update')
-                alert(`Event #${response._data.id} was created successfully!`)
+    if (props.eventInfo != undefined) {
+        // Update/Edit our Event!
+        $fetch('/api/v1/Event', {
+            server: false,
+            method: 'PUT',
+            body: event.value,
+            onResponse({ response }) {
+                if (!response.ok) {
+                    alert(response._data)
+                } else {
+                    emit('update')
+                    alert(`Event #${event.value.id} was updated successfully!`)
+                }
             }
-        }
-    })
+        })
+    } else {
+        // Create a new Event!!!
+        $fetch('/api/v1/Event', {
+            server: false,
+            method: 'POST',
+            body: event.value,
+            onResponse({ response }) {
+                if (!response.ok) {
+                    alert(response._data)
+                } else {
+                    emit('update')
+                    alert(`Event #${response._data.id} was created successfully!`)
+                }
+            }
+        })
+    }
 }
 </script>

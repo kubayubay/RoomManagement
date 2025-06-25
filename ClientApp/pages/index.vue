@@ -11,8 +11,9 @@
             {{ months[currentDate.getMonth()] }} {{ currentDate.getFullYear() }}
         </div>
         <DayPilotMonth :config="config" ref="monthRef" />
+        <Button label="New Event" class="mt-4" @click="scroll()" />
     </div>
-    <EventForm @update="loadEvents" :eventInfo="event" v-if="event != undefined" />
+    <EventForm ref="eventFormRef" @update="loadEvents" :eventInfo="event" v-if="isEventFormShown" />
 </template>
 
 <script setup>
@@ -20,6 +21,7 @@ import { DayPilot, DayPilotMonth } from '@daypilot/daypilot-lite-vue'
 import { ref, onMounted } from 'vue'
 
 const event = ref()
+const eventFormRef = ref()
 const currentDate = ref(new Date())
 const months = [
     'January',
@@ -35,6 +37,7 @@ const months = [
     'November',
     'December',
 ]
+const isEventFormShown = ref(false)
 
 const config = ref({
     locale: 'en-us',
@@ -70,6 +73,8 @@ const config = ref({
                         server: false,
                         onResponse({ response }) {
                             event.value = response._data
+                            isEventFormShown.value = true
+                            scroll()
                         }
                     })
                 }
@@ -87,7 +92,16 @@ const config = ref({
 
 const monthRef = ref(null)
 
+const scroll = () => {
+    isEventFormShown.value = true
+    setTimeout(() => {
+        console.log(eventFormRef.value)
+        eventFormRef.value.$el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 200)
+}
+
 const loadEvents = () => {
+    isEventFormShown.value = false
     let events = []
     let startDate = new Date(currentDate.value)
     startDate.setDate(1)
