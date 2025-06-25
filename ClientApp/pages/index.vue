@@ -12,22 +12,14 @@
         </div>
         <DayPilotMonth :config="config" ref="monthRef" />
     </div>
-    <div v-if="events != undefined">
-        <div v-for="event in events">
-            {{ event.name }}
-        </div>
-    </div>
-    <div v-if="rooms != undefined">
-        <div v-for="room in rooms">
-            {{ room.name }}
-        </div>
-    </div>
+    <EventForm @update="loadEvents" :eventInfo="event" v-if="event != undefined" />
 </template>
 
 <script setup>
 import { DayPilot, DayPilotMonth } from '@daypilot/daypilot-lite-vue'
 import { ref, onMounted } from 'vue'
 
+const event = ref()
 const currentDate = ref(new Date())
 const months = [
     'January',
@@ -65,11 +57,23 @@ const config = ref({
     eventResizeHandling: 'Update',
     onEventResized: (args) => {
         console.log('Event resized: ' + args.e.text())
-    },
+    }, */
     eventClickHandling: 'Disabled',
     eventRightClickHandling: 'ContextMenu',
     contextMenu: new DayPilot.Menu({
         items: [
+            {
+                text: 'Edit',
+                onClick: (args) => {
+                    let id = args.source.id()
+                    $fetch(`/api/v1/Event?id=${id}`, {
+                        server: false,
+                        onResponse({ response }) {
+                            event.value = response._data
+                        }
+                    })
+                }
+            },
             {
                 text: 'Delete',
                 onClick: (args) => {
@@ -78,7 +82,7 @@ const config = ref({
                 }
             }
         ]
-    }), */
+    })
 })
 
 const monthRef = ref(null)

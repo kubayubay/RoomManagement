@@ -39,6 +39,16 @@ const config = ref({
     eventDeleteHandling: 'Update',
     onEventDeleted: (args) => {
         console.log('Event deleted: ' + args.e.text())
+        $fetch(`/api/v1/Event?id=${args.e.id()}`, {
+            server: false,
+            method: 'DELETE',
+            onResponse({ response }) {
+                if (!response.ok) {
+                    alert(`Could not delete event ${args.e.text()}.`)
+                }
+                loadEvents()
+            }
+        })
     },
     eventMoveHandling: 'Update',
     onEventMoved: (args) => {
@@ -56,6 +66,18 @@ const config = ref({
                 text: 'Delete', onClick: (args) => {
                     const dp = args.source.calendar
                     dp.events.remove(args.source)
+                    // console.log('Deleted through menu')
+                    console.log(args)
+                    $fetch(`/api/v1/Event?id=${args.source.id()}`, {
+                        server: false,
+                        method: 'DELETE',
+                        onResponse({ response }) {
+                            if (!response.ok) {
+                                alert(`Could not delete event ${args.source.text()}.`)
+                            }
+                            loadEvents()
+                        }
+                    })
                 }
             }
         ]

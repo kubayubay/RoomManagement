@@ -5,7 +5,6 @@ using Riok.Mapperly.Abstractions;
 
 namespace RoomManagement.Controllers;
 
-
 [Mapper(RequiredMappingStrategy = RequiredMappingStrategy.None)]
 public partial class EventMapper
 {
@@ -93,24 +92,31 @@ public class EventController : ControllerBase
         {
             return BadRequest("Tables entered is less than 0.");
         }
+        else if (userEvent.EndAt <= userEvent.StartAt)
+        {
+            return BadRequest("Invalid Start/End At.");
+        }
 
-        if (userEvent.Attendees <= room.Capacity)
-            {
-                userEvent.Id = 0;
-                userEvent.UpdatedBy = null;
-                userEvent.UpdatedAt = null;
-                userEvent.CreatedBy = 5;
-                userEvent.CreatedAt = DateTime.Now;
+        var newEvent = new Event();
+        _mapper.EventToEvent(userEvent, newEvent);
 
-                _context.Add(userEvent);
-                _context.SaveChangesAsync();
+        if (newEvent.Attendees <= room.Capacity)
+        {
+            newEvent.Id = 0;
+            newEvent.UpdatedBy = null;
+            newEvent.UpdatedAt = null;
+            newEvent.CreatedBy = 5;
+            newEvent.CreatedAt = DateTime.Now;
 
-                return Ok(userEvent);
-            }
-            else
-            {
-                return BadRequest($"{room.Id} does not have enough capacity for {userEvent.Attendees} attendees.");
-            }
+            _context.Add(newEvent);
+            _context.SaveChanges();
+
+            return Ok(newEvent);
+        }
+        else
+        {
+            return BadRequest($"{room.Id} does not have enough capacity for {userEvent.Attendees} attendees.");
+        }
     }
 
     [HttpPut]
@@ -142,6 +148,10 @@ public class EventController : ControllerBase
         {
             return BadRequest("Tables entered is less than 0.");
         }
+        else if (userEvent.EndAt <= userEvent.StartAt)
+        {
+            return BadRequest("Invalid Start/End At.");
+        }
 
         var oldEvent = _context.Events.Single(e => e.Id == userEvent.Id);
         _mapper.EventToEvent(userEvent, oldEvent);
@@ -156,11 +166,11 @@ public class EventController : ControllerBase
     {
        try
         {
-            var calendarEvent = _context.Database.SqlQuery<Event>(@$"
+            var calendarEvent = _context.Database.ExecuteSql(@$"
                 DELETE FROM Events
                 WHERE Id = {id}
-            ").Single();
-            return Ok(calendarEvent);
+            ");
+            return Ok($"Event #{id} was deleted successfully.");
         }
         catch (Exception)
         {
