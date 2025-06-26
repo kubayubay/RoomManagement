@@ -1,4 +1,5 @@
 using RoomManagement.Models;
+using RoomManagement.DTOs;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Riok.Mapperly.Abstractions;
@@ -33,9 +34,11 @@ public class EventController : ControllerBase
     {
         try
         {
-            var calendarEvent = _context.Database.SqlQuery<Event>(@$"
-                SELECT * FROM Events
-                WHERE Id = {id}
+            var calendarEvent = _context.Database.SqlQuery<EventUserDTO>(@$"
+                SELECT Events.*, Users.Email, Users.Phone, Users.Name AS UserName
+                FROM Events
+                INNER JOIN Users ON Events.CreatedBy = Users.Id
+                WHERE Events.Id = {id}
             ").Single();
             return Ok(calendarEvent);
         }
@@ -50,8 +53,10 @@ public class EventController : ControllerBase
     {  
         try
         {
-            var calendarEvents = _context.Database.SqlQuery<Event>(@$"
-                SELECT * FROM Events
+            var calendarEvents = _context.Database.SqlQuery<EventUserDTO>(@$"
+                SELECT Events.*, Users.Email, Users.Phone, Users.Name AS UserName
+                FROM Events
+                INNER JOIN Users ON Events.CreatedBy = Users.Id
                 WHERE StartAt >= {start}
                 AND EndAt <= CONCAT({end}, ' 23:59')
             ");

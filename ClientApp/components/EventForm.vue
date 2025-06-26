@@ -17,13 +17,30 @@
                     outerClass="col-span-6 !w-full"
                     inputClass="!w-full"
                 />
+                <div outerClass="col-span-6" />
+                <FormKit
+                    label="Email"
+                    validation="required"
+                    validationVisibility="live"
+                    v-model="event.email"
+                    outerClass="col-span-6 !w-full"
+                    :disabled="true"
+                />
+                <FormKit
+                    label="Phone"
+                    validation="required"
+                    validationVisibility="live"
+                    v-model="event.phone"
+                    outerClass="col-span-6 !w-full"
+                    :disabled="true"
+                />
                 <FormKit
                     type="datetime-local"
                     label="Start At"
                     validation="required"
                     validationVisibility="live"
                     v-model="event.startAt"
-                    outerClass="col-span-12"
+                    outerClass="col-span-6"
                 />
                 <FormKit
                     type="datetime-local"
@@ -31,7 +48,7 @@
                     validation="required"
                     validationVisibility="live"
                     v-model="event.endAt"
-                    outerClass="col-span-12"
+                    outerClass="col-span-6"
                 />
                 <FormKit
                     type="select"
@@ -75,7 +92,7 @@
                 />
             </div>
 
-            <template v-if="props.eventInfo != undefined">
+            <template v-if="props.eventInfo != undefined && props.eventInfo.id != undefined">
                 <Button label="Update Event" />
             </template>
             <template v-else>
@@ -98,10 +115,21 @@ const event = ref<any>({
 })
 
 const props = defineProps(['eventInfo'])
-const emit = defineEmits(['update'])
+const emit = defineEmits(['update', 'close'])
 
 if (props.eventInfo != undefined) {
     event.value = props.eventInfo
+}
+
+if (props.eventInfo != undefined && props.eventInfo.id == undefined) {
+    $fetch(`/api/v1/User?id=5`, {
+        server: false,
+        onResponse({ response }) {
+            event.value.email = response._data.email
+            event.value.phone = response._data.phone
+            event.value.userName = response._data.name
+        }
+    })
 }
 
 onMounted(() => {
@@ -121,7 +149,7 @@ onMounted(() => {
 })
 
 const onSubmit = () => {
-    if (props.eventInfo != undefined) {
+    if (props.eventInfo != undefined && props.eventInfo.id != undefined) {
         // Update/Edit our Event!
         $fetch('/api/v1/Event', {
             server: false,

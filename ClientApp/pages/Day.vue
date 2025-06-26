@@ -7,6 +7,7 @@
             <Button label="Calendar" icon="ic:outline-calendar-month" @click="onClickCalendar" />
         </div>
         <DayPilotCalendar :config="config" ref="calendarRef" />
+        <!-- <ModalTest /> -->
         <EventForm ref="eventFormRef" :eventInfo="event" v-if="isEventFormShown" @update="loadEvents" />
     </div>
 </template>
@@ -14,6 +15,8 @@
 <script setup lang="ts">
 import { DayPilot, DayPilotCalendar } from '@daypilot/daypilot-lite-vue'
 import { ref, onMounted } from 'vue'
+import { ModalTest } from '#components'
+
 const route = useRoute()
 const event = ref()
 const isEventFormShown = ref(false)
@@ -36,17 +39,17 @@ const config = ref({
     businessEndsHour: 21,
     timeRangeSelectedHandling: 'Enabled',
     onTimeRangeSelected: async (args) => {
-        const modal = await DayPilot.Modal.prompt('Create a new event:', 'Event 1')
-        const calendar = args.control
-        calendar.clearSelection()
-        if (modal.canceled) { return }
-        calendar.events.add({
-            start: args.start,
-            end: args.end,
-            id: DayPilot.guid(),
-            text: modal.result,
-            resource: args.resource
-        })
+        console.log(args)
+        isEventFormShown.value = false
+        setTimeout(() => {
+            event.value = {}
+            event.value.startAt = args.start
+            event.value.endAt = args.end
+            event.value.roomId = args.resource
+            isEventFormShown.value = true
+            args.control.clearSelection()
+            scroll()
+        }, 200)
     },
     eventDeleteHandling: 'Update',
     onEventDeleted: (args) => {
@@ -64,11 +67,55 @@ const config = ref({
     },
     eventMoveHandling: 'Update',
     onEventMoved: (args) => {
-        console.log('Event moved: ' + args.e.text())
+        $fetch(`/api/v1/Event?id=${args.e.data.id}`, {
+            server: false,
+            onResponse({ response }) {
+                let originalEvent = response._data
+                originalEvent.startAt = args.newStart
+                originalEvent.endAt = args.newEnd
+                originalEvent.roomId = args.newResource
+                $fetch('/api/v1/Event', {
+                    server: false,
+                    method: 'PUT',
+                    body: originalEvent,
+                    onResponse({ response }) {
+                        if (!response.ok) {
+                            alert(response._data)
+                        } else {
+                            alert(`Event #${originalEvent.id} was moved successfully!`)
+                        }
+
+                        loadEvents()
+                    }
+                })
+            }
+        })
     },
     eventResizeHandling: 'Update',
     onEventResized: (args) => {
-        console.log('Event resized: ' + args.e.text())
+        $fetch(`/api/v1/Event?id=${args.e.data.id}`, {
+            server: false,
+            onResponse({ response }) {
+                let originalEvent = response._data
+                originalEvent.startAt = args.newStart
+                originalEvent.endAt = args.newEnd
+                // originalEvent.roomId = args.newResource
+                $fetch('/api/v1/Event', {
+                    server: false,
+                    method: 'PUT',
+                    body: originalEvent,
+                    onResponse({ response }) {
+                        if (!response.ok) {
+                            alert(response._data)
+                        } else {
+                            alert(`Event #${originalEvent.id} was resized successfully!`)
+                        }
+
+                        loadEvents()
+                    }
+                })
+            }
+        })
     },
     eventClickHandling: 'ContextMenu',
     eventRightClickHandling: 'ContextMenu',
@@ -77,12 +124,15 @@ const config = ref({
             {
                 text: 'Edit', onClick: (args) => {
                     let id = args.source.id()
+                    isEventFormShown.value = false
                     $fetch(`/api/v1/Event?id=${id}`, {
                         server: false,
                         onResponse({ response }) {
                             event.value = response._data
-                            isEventFormShown.value = true
-                            scroll()
+                            setTimeout(() => {
+                                isEventFormShown.value = true
+                                scroll()
+                            }, 200)
                         }
                     })
                 }
@@ -146,8 +196,16 @@ const loadResources = () => {
 
 const onClickCalendar = () => navigateTo('/')
 
-onMounted(() => {
+onMounted(async () => {
     loadEvents()        // load events
     loadResources()     // load rooms (resources)
+
+    const overlay = useOverlay()
+    const modal = overlay.create(ModalTest)
+
+    const instance = modal.open()
+    console.log(modal)
+    console.log(instance)
+    const shouldIncrement = await instance.result
 })
 </script>
