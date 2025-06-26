@@ -16,11 +16,29 @@
 import { DayPilot, DayPilotCalendar } from '@daypilot/daypilot-lite-vue'
 import { ref, onMounted } from 'vue'
 import { ModalTest } from '#components'
+import * as signalR from '@microsoft/signalr'
 
 const route = useRoute()
 const event = ref()
 const isEventFormShown = ref(false)
 const eventFormRef = ref()
+
+const connection = new signalR.HubConnectionBuilder()
+    .withUrl('/hub/Events', signalR.HttpTransportType.ServerSentEvents)
+    .withAutomaticReconnect()
+    .build()
+
+connection.on('NewEvent', (notification) => {
+    loadEvents()
+})
+
+connection.on('UpdatedEvent', (notification) => {
+    loadEvents()
+})
+
+connection
+    .start()
+    .catch((err) => console.error("SignalR Connection Error: ", err));
 
 const scroll = () => {
     isEventFormShown.value = true
@@ -200,12 +218,12 @@ onMounted(async () => {
     loadEvents()        // load events
     loadResources()     // load rooms (resources)
 
-    const overlay = useOverlay()
-    const modal = overlay.create(ModalTest)
+    // const overlay = useOverlay()
+    // const modal = overlay.create(ModalTest)
 
-    const instance = modal.open()
-    console.log(modal)
-    console.log(instance)
-    const shouldIncrement = await instance.result
+    // const instance = modal.open()
+    // console.log(modal)
+    // console.log(instance)
+    // const shouldIncrement = await instance.result
 })
 </script>

@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using RoomManagement.Models;
+using RoomManagement.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -26,6 +27,8 @@ builder.Services.AddCors(options =>
     });
 });
 
+builder.Services.AddSignalR();
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
@@ -41,5 +44,7 @@ app.UseCors("AllowSwagger");
 app.UseAuthorization();
 
 app.MapControllers();
+
+app.MapHub<EventHub>("/Hub/Events");
 
 app.Run();

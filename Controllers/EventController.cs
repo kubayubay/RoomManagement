@@ -3,6 +3,9 @@ using RoomManagement.DTOs;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Riok.Mapperly.Abstractions;
+using Microsoft.AspNetCore.SignalR;
+using RoomManagement.Hubs;
+using System.Threading.Tasks;
 
 namespace RoomManagement.Controllers;
 
@@ -22,11 +25,13 @@ public class EventController : ControllerBase
     private readonly ILogger<EventController> _logger;
     private readonly RoomManagementContext _context;
     private readonly EventMapper _mapper = new();
+    private readonly IHubContext<EventHub> _eventHub;
 
-    public EventController(ILogger<EventController> logger, RoomManagementContext context)
+    public EventController(ILogger<EventController> logger, RoomManagementContext context, IHubContext<EventHub> eventHub)
     {
         _logger = logger;
         _context = context;
+        _eventHub = eventHub;
     }
 
     [HttpGet]
@@ -69,7 +74,7 @@ public class EventController : ControllerBase
     }
 
     [HttpPost]
-    public IActionResult NewEvent(Event userEvent)
+    public async Task<IActionResult> NewEvent(Event userEvent)
     {
         var room = _context.Rooms.Single(r => r.Id == userEvent.RoomId);
 
@@ -113,8 +118,10 @@ public class EventController : ControllerBase
             newEvent.CreatedBy = 5;
             newEvent.CreatedAt = DateTime.Now;
 
-            _context.Add(newEvent);
-            _context.SaveChanges();
+            await _context.AddAsync(newEvent);
+            await _context.SaveChangesAsync();
+
+            await _eventHub.Clients.All.SendAsync("NewEvent", @$"New event was created.");
 
             return Ok(newEvent);
         }
@@ -125,7 +132,7 @@ public class EventController : ControllerBase
     }
 
     [HttpPut]
-    public IActionResult UpdateEvent(Event userEvent)
+    public async Task<IActionResult> UpdateEvent(Event userEvent)
     {
         var room = _context.Rooms.Single(r => r.Id == userEvent.RoomId);
 
@@ -162,7 +169,11 @@ public class EventController : ControllerBase
         _mapper.EventToEvent(userEvent, oldEvent);
         oldEvent.UpdatedAt = DateTime.Now;
         oldEvent.UpdatedBy = 5;
-        _context.SaveChanges();
+
+        await _eventHub.Clients.All.SendAsync("UpdatedEvent", @$"Event #{userEvent.Id} was updated.");
+
+        await _context.SaveChangesAsync();
+
         return Ok(oldEvent);
     }
 
