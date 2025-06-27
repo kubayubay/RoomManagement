@@ -7,46 +7,34 @@
             <Button label="Calendar" icon="ic:outline-calendar-month" @click="onClickCalendar" />
         </div>
         <DayPilotCalendar :config="config" ref="calendarRef" />
-        <!-- <ModalTest /> -->
-        <EventForm ref="eventFormRef" :eventInfo="event" v-if="isEventFormShown" @update="loadEvents" />
+        <!-- <EventForm ref="eventFormRef" :eventInfo="event" @update="loadEvents" /> -->
     </div>
 </template>
 
 <script setup lang="ts">
 import { DayPilot, DayPilotCalendar } from '@daypilot/daypilot-lite-vue'
 import { ref, onMounted } from 'vue'
-import { ModalTest } from '#components'
+import { EventForm } from '#components'
 import * as signalR from '@microsoft/signalr'
 
 const route = useRoute()
 const event = ref()
-const isEventFormShown = ref(false)
-const eventFormRef = ref()
+const toast = useToast()
+
+const overlay = useOverlay()
+const modal = overlay.create(EventForm)
 
 const connection = new signalR.HubConnectionBuilder()
     .withUrl('/hub/Events', signalR.HttpTransportType.ServerSentEvents)
     .withAutomaticReconnect()
     .build()
 
-connection.on('NewEvent', (notification) => {
-    loadEvents()
-})
-
-connection.on('UpdatedEvent', (notification) => {
-    loadEvents()
-})
+connection.on('NewEvent', () => loadEvents())
+connection.on('UpdatedEvent', () => loadEvents())
 
 connection
     .start()
     .catch((err) => console.error("SignalR Connection Error: ", err));
-
-const scroll = () => {
-    isEventFormShown.value = true
-    setTimeout(() => {
-        console.log(eventFormRef.value)
-        eventFormRef.value.$el.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    }, 200)
-}
 
 const config = ref({
     viewType: 'Resources',
@@ -57,17 +45,12 @@ const config = ref({
     businessEndsHour: 21,
     timeRangeSelectedHandling: 'Enabled',
     onTimeRangeSelected: async (args) => {
-        console.log(args)
-        isEventFormShown.value = false
-        setTimeout(() => {
-            event.value = {}
-            event.value.startAt = args.start
-            event.value.endAt = args.end
-            event.value.roomId = args.resource
-            isEventFormShown.value = true
-            args.control.clearSelection()
-            scroll()
-        }, 200)
+        event.value = {}
+        event.value.startAt = args.start
+        event.value.endAt = args.end
+        event.value.roomId = args.resource
+        modal.open({ eventInfo: event.value })
+        args.control.clearSelection()
     },
     eventDeleteHandling: 'Update',
     onEventDeleted: (args) => {
@@ -77,7 +60,9 @@ const config = ref({
             method: 'DELETE',
             onResponse({ response }) {
                 if (!response.ok) {
-                    alert(`Could not delete event ${args.e.text()}.`)
+                    toast.add({ title: `Could not delete event ${args.e.text()}.` })
+                } else {
+                    toast.add({ title: `Event ${args.e.text()} was deleted successfully.` })
                 }
                 loadEvents()
             }
@@ -98,9 +83,9 @@ const config = ref({
                     body: originalEvent,
                     onResponse({ response }) {
                         if (!response.ok) {
-                            alert(response._data)
+                            toast.add({ title: `Error: ${response._data}` })
                         } else {
-                            alert(`Event #${originalEvent.id} was moved successfully!`)
+                            toast.add({ title: `Event #${originalEvent.id} was moved successfully!` })
                         }
 
                         loadEvents()
@@ -124,9 +109,9 @@ const config = ref({
                     body: originalEvent,
                     onResponse({ response }) {
                         if (!response.ok) {
-                            alert(response._data)
+                            toast.add({ title: `Error: ${response._data}` })
                         } else {
-                            alert(`Event #${originalEvent.id} was resized successfully!`)
+                            toast.add({ title: `Event #${originalEvent.id} was resized successfully!` })
                         }
 
                         loadEvents()
@@ -142,15 +127,11 @@ const config = ref({
             {
                 text: 'Edit', onClick: (args) => {
                     let id = args.source.id()
-                    isEventFormShown.value = false
                     $fetch(`/api/v1/Event?id=${id}`, {
                         server: false,
                         onResponse({ response }) {
                             event.value = response._data
-                            setTimeout(() => {
-                                isEventFormShown.value = true
-                                scroll()
-                            }, 200)
+                            modal.open({ eventInfo: event.value })
                         }
                     })
                 }
@@ -166,7 +147,9 @@ const config = ref({
                         method: 'DELETE',
                         onResponse({ response }) {
                             if (!response.ok) {
-                                alert(`Could not delete event ${args.source.text()}.`)
+                                toast.add({ title: `Could not delete event ${args.source.text()}.` })
+                            } else {
+                                toast.add({ title: `Event ${args.source.text()} was deleted succesfully.` })
                             }
                             loadEvents()
                         }
@@ -182,7 +165,6 @@ const calendarRef = ref(null)
 const loadEvents = () => {
     let events = []
     let date = route.query.date
-    isEventFormShown.value = false
     config.value.startDate = new Date(date)
     $fetch(`/api/v1/Event/Events?start=${date}&end=${date}`, {
         server: false,
@@ -217,13 +199,5 @@ const onClickCalendar = () => navigateTo('/')
 onMounted(async () => {
     loadEvents()        // load events
     loadResources()     // load rooms (resources)
-
-    // const overlay = useOverlay()
-    // const modal = overlay.create(ModalTest)
-
-    // const instance = modal.open()
-    // console.log(modal)
-    // console.log(instance)
-    // const shouldIncrement = await instance.result
 })
 </script>
