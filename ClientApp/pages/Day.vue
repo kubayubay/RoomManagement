@@ -1,11 +1,14 @@
 <template>
     <div>
         <div class="text-2xl font-bold mb-4">
-            Room Management - Day View
+            Room Management - Day View {{ route.query.date }}
         </div>
         <div class="mb-4">
             <Button label="Calendar" icon="ic:outline-calendar-month" @click="onClickCalendar" />
         </div>
+        <!-- <div class="text-xl font-bold mb-4 text-center">
+            {{ route.query.date }}
+        </div> -->
         <DayPilotCalendar :config="config" ref="calendarRef" />
         <!-- <EventForm ref="eventFormRef" :eventInfo="event" @update="loadEvents" /> -->
     </div>
@@ -25,16 +28,17 @@ const overlay = useOverlay()
 const modal = overlay.create(EventForm)
 
 const connection = new signalR.HubConnectionBuilder()
-    .withUrl('/hub/Events', signalR.HttpTransportType.ServerSentEvents)
+    .withUrl('/hub/Events', signalR.HttpTransportType.LongPolling)
     .withAutomaticReconnect()
     .build()
 
 connection.on('NewEvent', () => loadEvents())
 connection.on('UpdatedEvent', () => loadEvents())
+connection.on('DeletedEvent', () => loadEvents())
 
 connection
     .start()
-    .catch((err) => console.error("SignalR Connection Error: ", err));
+    .catch((err) => console.error("SignalR Connection Error: ", err))
 
 const config = ref({
     viewType: 'Resources',

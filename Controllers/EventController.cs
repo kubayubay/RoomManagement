@@ -5,7 +5,6 @@ using Microsoft.EntityFrameworkCore;
 using Riok.Mapperly.Abstractions;
 using Microsoft.AspNetCore.SignalR;
 using RoomManagement.Hubs;
-using System.Threading.Tasks;
 
 namespace RoomManagement.Controllers;
 
@@ -170,15 +169,15 @@ public class EventController : ControllerBase
         oldEvent.UpdatedAt = DateTime.Now;
         oldEvent.UpdatedBy = 5;
 
-        await _eventHub.Clients.All.SendAsync("UpdatedEvent", @$"Event #{userEvent.Id} was updated.");
-
         await _context.SaveChangesAsync();
+
+        await _eventHub.Clients.All.SendAsync("UpdatedEvent", @$"Event #{userEvent.Id} was updated.");
 
         return Ok(oldEvent);
     }
 
     [HttpDelete]
-    public IActionResult DeleteEvent(int id)
+    public async Task<IActionResult> DeleteEvent(int id)
     {
        try
         {
@@ -186,6 +185,9 @@ public class EventController : ControllerBase
                 DELETE FROM Events
                 WHERE Id = {id}
             ");
+
+            await _eventHub.Clients.All.SendAsync("DeletedEvent", @$"Event #{id} was deleted successfully.");
+
             return Ok($"Event #{id} was deleted successfully.");
         }
         catch (Exception)

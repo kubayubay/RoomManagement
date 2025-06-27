@@ -11,17 +11,16 @@
             {{ months[currentDate.getMonth()] }} {{ currentDate.getFullYear() }}
         </div>
         <DayPilotMonth :config="config" ref="monthRef" />
-        <Button label="New Event" class="mt-4" @click="scroll()" />
+        <Button label="New Event" class="mt-4" @click="modal.open({ eventInfo: {} })" />
     </div>
-    <EventForm ref="eventFormRef" @update="loadEvents" :eventInfo="event" v-if="isEventFormShown" />
 </template>
 
 <script setup>
 import { DayPilot, DayPilotMonth } from '@daypilot/daypilot-lite-vue'
 import { ref, onMounted } from 'vue'
+import { EventForm } from '#components'
 
 const event = ref()
-const eventFormRef = ref()
 const currentDate = ref(new Date())
 const months = [
     'January',
@@ -37,7 +36,9 @@ const months = [
     'November',
     'December',
 ]
-const isEventFormShown = ref(false)
+const overlay = useOverlay()
+const modal = overlay.create(EventForm)
+const toast = useToast()
 
 const config = ref({
     locale: 'en-us',
@@ -73,8 +74,7 @@ const config = ref({
                         server: false,
                         onResponse({ response }) {
                             event.value = response._data
-                            isEventFormShown.value = true
-                            scroll()
+                            modal.open({ eventInfo: event.value })
                         }
                     })
                 }
@@ -82,8 +82,19 @@ const config = ref({
             {
                 text: 'Delete',
                 onClick: (args) => {
-                    const dp = args.source.calendar
-                    dp.events.remove(args.source)
+                    console.log(args)
+                    $fetch(`/api/v1/Event?id=${args.source.id()}`, {
+                        server: false,
+                        method: 'DELETE',
+                        onResponse({ response }) {
+                            if (!response.ok) {
+                                toast.add({ title: `Could not delete event ${args.source.text()}.` })
+                            } else {
+                                toast.add({ title: `Event ${args.source.text()} was deleted successfully.` })
+                            }
+                            loadEvents()
+                        }
+                    })
                 }
             }
         ]
@@ -92,16 +103,7 @@ const config = ref({
 
 const monthRef = ref(null)
 
-const scroll = () => {
-    isEventFormShown.value = true
-    setTimeout(() => {
-        console.log(eventFormRef.value)
-        eventFormRef.value.$el.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    }, 200)
-}
-
 const loadEvents = () => {
-    isEventFormShown.value = false
     let events = []
     let startDate = new Date(currentDate.value)
     startDate.setDate(1)
