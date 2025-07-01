@@ -126,6 +126,9 @@ if (props.eventInfo != undefined) {
 if (props.eventInfo != undefined && props.eventInfo.id == undefined) {
     $fetch(`/api/v1/User?id=5`, {
         server: false,
+        headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`
+        },
         onResponse({ response }) {
             event.value.email = response._data.email
             event.value.phone = response._data.phone
@@ -137,6 +140,9 @@ if (props.eventInfo != undefined && props.eventInfo.id == undefined) {
 onMounted(() => {
     $fetch('/api/v1/Room/Rooms', {
         server: false,
+        headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`
+        },
         onResponse({ response }) {
             let tempRooms = [{ label: 'Select a room', value: undefined }]
             for (let room of response._data) {
@@ -155,6 +161,9 @@ const onSubmit = () => {
         // Update/Edit our Event!
         $fetch('/api/v1/Event', {
             server: false,
+            headers: {
+                Authorization: `Bearer ${localStorage.getItem('token')}`
+            },
             method: 'PUT',
             body: event.value,
             onResponse({ response }) {
@@ -172,6 +181,9 @@ const onSubmit = () => {
         // Create a new Event!!!
         $fetch('/api/v1/Event', {
             server: false,
+            headers: {
+                Authorization: `Bearer ${localStorage.getItem('token')}`
+            },
             method: 'POST',
             body: event.value,
             onResponse({ response }) {

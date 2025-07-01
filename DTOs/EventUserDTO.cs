@@ -4,6 +4,7 @@ namespace RoomManagement.DTOs;
 
 public class EventUserDTO : Event
 {
+    public string RoomName { get; set; } = "";
     public string UserName { get; set; } = "";
     public string? Email { get; set; } = "";
     public long? Phone { get; set; }

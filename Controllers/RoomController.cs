@@ -2,6 +2,7 @@ using RoomManagement.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Riok.Mapperly.Abstractions;
+using Microsoft.AspNetCore.Authorization;
 
 namespace RoomManagement.Controllers;
 
@@ -12,6 +13,7 @@ public partial class RoomMapper
     public partial void RoomToRoom(Room oldRoom, Room newRoom);
 }
 
+[Authorize]
 [ApiController]
 [Route("/api/v1/[controller]")]
 public class RoomController : ControllerBase
