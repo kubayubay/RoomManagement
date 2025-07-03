@@ -42,7 +42,7 @@ const randomPiece = () => {
      }
 }
 
-const board = reactive(Array.from({ length: ROWS }, () => Array(COLS).fill(0)))
+let board = reactive(Array.from({ length: ROWS }, () => Array(COLS).fill(0)))
 const current = reactive(randomPiece())
 const score = ref(0)
 
@@ -72,11 +72,12 @@ const collide = (xOffset = 0, yOffset = 0, shape = current.shape) => {
             if (!val) return false
             const x = current.x + dx + xOffset
             const y = current.y + dy + yOffset
-            return ( x < 0 || y < 0 || x >= COLS || y >= ROWS || board[y][x])
+            return (x < 0 || y < 0 || x >= COLS || y >= ROWS || board[y][x])
         })
     )
 }
 
+// See here: https://stackoverflow.com/questions/15170942/how-to-rotate-a-matrix-in-an-array-in-javascript
 const rotate = (shape) => {
     return shape[0].map(
         (_, idx) => shape.map(row => row[idx]).reverse()
@@ -89,11 +90,16 @@ const freeze = () => {
             board.splice(y, 1)
             board.unshift(Array(COLS).fill(0))
             score.value += 10
-            y++
+            y++ // check the shifted row again if it's complete line as well
         }
     }
     Object.assign(current, randomPiece())
-    if (collide()) alert('You lost!')
+    if (collide()) {
+        draw()
+        alert('You lost!')
+        score.value = 0
+        board = reactive(Array.from({ length: ROWS }, () => Array(COLS).fill(0)))
+    }
 }
 
 const drop = () => {
@@ -102,8 +108,8 @@ const drop = () => {
     if (!collide(0, 1)) {
         current.y += 1
     } else {
-        draw()
-        freeze()
+        draw()  // draw the old piece
+        freeze()    // this will give you a new piece
         return
     }
 
@@ -119,8 +125,8 @@ const move = (dir) => {
 
 const rotatePiece = () => {
     unDraw()
-    const nextPiece = rotate(current.shape)
-    if (!collide(0, 0, nextPiece)) current.shape = nextPiece
+    const rotatePiece = rotate(current.shape)
+    if (!collide(0, 0, rotatePiece)) current.shape = rotatePiece
     draw()
 }
 
